@@ -1,0 +1,45 @@
+name: threadline-verify
+on:
+  push:
+    branches: ['threadline/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install project and tools
+        shell: bash
+        run: |
+          set +e
+          python -m pip install --upgrade pip
+          pip install pytest ruff bandit pip-audit
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then pip install -e . || pip install .; fi
+          exit 0
+      - name: Run checks
+        shell: bash
+        run: |
+          set +e
+          status=0
+          run_check() {
+            name="$1"; shift
+            echo "THREADLINE $name START $(date -u +%Y-%m-%dT%H:%M:%SZ) COMMAND: $*"
+            "$@"
+            code=$?
+            echo "THREADLINE $name EXIT=$code END $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            if [ $code -ne 0 ]; then status=1; fi
+          }
+          python --version; pytest --version; ruff --version; bandit --version; pip-audit --version
+          run_check pytest pytest -rA
+          run_check ruff ruff check .
+          run_check bandit bandit -r . -x ./tests,./.git
+          run_check pip-audit pip-audit
+          exit $status
