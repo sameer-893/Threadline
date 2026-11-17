@@ -17,13 +17,12 @@ jobs:
       - name: Install project and tools
         shell: bash
         run: |
-          set +e
+          set -e
           python -m pip install --upgrade pip
           pip install pytest ruff bandit pip-audit
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-          if [ -f pyproject.toml ] || [ -f setup.py ]; then pip install -e . || pip install .; fi
-          exit 0
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then pip install -e .; fi
       - name: Run checks
         shell: bash
         run: |
